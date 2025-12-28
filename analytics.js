@@ -10,39 +10,26 @@
     'use strict';
     
     // ==================== 配置区域 ====================
-    // 在这里配置你所有网站的统计ID
-    const ANALYTICS_CONFIG = {
-        // 域名配置映射 - 添加你的网站和对应的统计ID
-        // 本地开发环境 - 不启用统计，避免污染数据
-        // localhost 和 127.0.0.1 会被自动识别为开发环境
-        // 如果你确实需要测试统计，可以取消注释下面的配置
-        /*
-        'localhost': {
-            ga: 'G-2EE843NKSD',
-            baidu: 'e4216c0b920a9036e8ae6a85d8774be7',
-            umami: 'db3eaad6-38cb-46ed-a3c9-fea8b2c36aeb',
-            umamiUrl: 'https://cloud.umami.is/script.js'
-        },
-        */
-        
-        // 生产环境配置
-        'bearxwu.sbs': {
-            ga: 'G-2EE843NKSD',                           // Google Analytics ID
-            baidu: 'e4216c0b920a9036e8ae6a85d8774be7',    // 百度统计ID
-            umami: 'db3eaad6-38cb-46ed-a3c9-fea8b2c36aeb', // Umami网站ID
-            umamiUrl: 'https://cloud.umami.is/script.js'     // Umami脚本地址
-        },
-        
-        // 添加更多域名配置...
-        // 'another-domain.com': { ga: 'G-YYYYYYYYYY', baidu: 'yyyyyyyyyyyy', umami: 'another-id', umamiUrl: 'https://...' }
+    // 默认统计ID - 所有网站默认使用这些ID
+    const DEFAULT_ANALYTICS_IDS = {
+        ga: 'G-2EE843NKSD',                           // Google Analytics ID
+        baidu: 'e4216c0b920a9036e8ae6a85d8774be7',    // 百度统计ID
+        umami: 'db3eaad6-38cb-46ed-a3c9-fea8b2c36aeb', // Umami网站ID
+        umamiUrl: 'https://cloud.umami.is/script.js'     // Umami脚本地址
     };
-    
-    // 默认配置（用于未配置的域名）
-    const DEFAULT_CONFIG = {
-        ga: 'G-XXXXXXXXXX',
-        baidu: 'xxxxxxxxxxxxxxxx',
-        umami: 'your-website-id', 
-        umamiUrl: 'https://your-umami-domain.com/umami.js'
+
+    // 独立统计配置 - 后续给特定网站配置独立的统计ID
+    // 格式：'域名': { ga: 'G-xxx', baidu: 'xxx', umami: 'xxx-id', umamiUrl: 'xxx' }
+    const INDIVIDUAL_CONFIGS = {
+        // 示例：为高流量网站配置独立统计
+        // 'high-traffic-site.com': {
+        //     ga: 'G-DIFFERENTGAID',
+        //     baidu: 'different-baidu-id',
+        //     umami: 'different-umami-id',
+        //     umamiUrl: 'https://cloud.umami.is/script.js'
+        // },
+        
+        // 目前没有独立配置，所有网站都使用默认统计
     };
     
     // 全局设置
@@ -61,23 +48,23 @@
         
         // 处理localhost情况
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            return ANALYTICS_CONFIG['localhost'] || null;
+            return null; // 开发环境不启用统计
         }
         
-        // 查找精确匹配的域名
-        if (ANALYTICS_CONFIG[hostname]) {
-            return ANALYTICS_CONFIG[hostname];
+        // 查找精确匹配的独立配置
+        if (INDIVIDUAL_CONFIGS[hostname]) {
+            return INDIVIDUAL_CONFIGS[hostname];
         }
         
-        // 查找子域名匹配
-        for (const domain in ANALYTICS_CONFIG) {
-            if (hostname.includes(domain) && domain !== 'localhost') {
-                return ANALYTICS_CONFIG[domain];
+        // 查找子域名匹配的独立配置
+        for (const domain in INDIVIDUAL_CONFIGS) {
+            if (hostname.includes(domain)) {
+                return INDIVIDUAL_CONFIGS[domain];
             }
         }
         
-        // 返回默认配置（可选）
-        return DEFAULT_CONFIG;
+        // 所有未配置独立统计的网站都使用默认统计ID
+        return DEFAULT_ANALYTICS_IDS;
     }
     
     // 检查是否应该启用统计
@@ -244,7 +231,9 @@
         const config = getDomainConfig();
         
         if (!config) {
-            console.warn('⚠️ No analytics configuration found for domain:', window.location.hostname);
+            if (GLOBAL_SETTINGS.debugMode) {
+                console.log('🚫 Analytics disabled (development mode)');
+            }
             return;
         }
         
